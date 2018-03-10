@@ -1,46 +1,51 @@
 <template>
   <div class="hello">
     <!-- <h1>{{ msg }}</h1> -->
-    <textarea name="main-text" id="main-text" cols="30" rows="10" placeholder="Paste your text here"></textarea>
-    <button class="btn txt-center" v-on:click="fetchContext"> Get Context </button>
+    <transition name="slide-fade">
+      <div id="text" v-if="showText">
+        <textarea name="main-text" id="main-text" cols="30" rows="10" placeholder="Paste your text here"></textarea>
+        <button class="btn txt-center" v-on:click="fetchContext"> Get Context </button>
+      </div>
+    </transition>
     <!-- <p>
       For guide and recipes on how to configure / customize this project,<br>
       check out the
       <a href="https://github.com/vuejs/vue-cli/tree/dev/docs" target="_blank">vue-cli documentation</a>.
     </p> -->
-    <div id="context-selector" v-if="showContext">
-      <h3>Select Context</h3>
-      <ul>
-        <li><span><input type="radio" id="c1" name="context-select" value="C1" v-model="contextSelected"><label for="c1"> Context 1 </label></span></li>
-        <li><span><input type="radio" id="c2" name="context-select" value="C2" v-model="contextSelected"><label for="c2"> Context 2 </label></span></li>
-      </ul>
-      <button class="btn txt-center" v-on:click="fetchFullSummary">Get Summary</button>
-    </div>
-    
-    <div id="output-selector" v-if="showOutput">
-      <h3>Select Output Format</h3>
-      <ul>
-        <li><span><input type="radio" id="t" v-on:change="showFormatOptions" value="TEXT" name="output-select" v-model="selectedFormat"> <label for="t"> Text </label> </span></li>
-        <li><span><input type="radio" id="a" v-on:change="showFormatOptions" value="AUDIO" name="output-select" v-model="selectedFormat"> <label for="a"> Audio </label> </span></li>
-        <!-- <li><a href="https://chat.vuejs.org" target="_blank">Community Chat</a></li>
-        <li><a href="https://twitter.com/vuejs" target="_blank">Twitter</a></li> -->
-      </ul>
-      <div v-if="textSelected">
-        <label for="line-count">Enter Line Count: <input type="number" v-model="lineCount" min="0" id="line-count"></label>
+    <transition name="fade">
+      <div id="context-selector" v-if="showContext">
+        <h3>Select Context</h3>
+        <ul>
+          <li><span><input type="radio" id="c1" name="context-select" value="C1" v-model="contextSelected" checked="checked" v-bind:class="{'checked': contextSelected==='C1'}"><label for="c1"> Context 1 </label></span></li>
+          <li><span><input type="radio" id="c2" name="context-select" value="C2" v-model="contextSelected" v-bind:class="{'checked': contextSelected==='C2'}"><label for="c2"> Context 2 </label></span></li>
+        </ul>
+        <button class="btn txt-center" v-on:click="fetchFullSummary">Get Summary</button>
       </div>
+    </transition>
 
-      <div v-if="audioSelected">
-        <label for="time">Enter Audio Time: <input type="number" v-model="audioTime" min="0" id="time"></label>
-        <label for="accent">Select Audio Accent: 
-          <select id="accent" v-model="accent">
-            <option value="EN-UK">English (UK)</option>
-            <option value="EN-IN">English (IN)</option>
-            <option value="EN-US">English (US)</option>
-            <!-- <option value="EN-UK">English (UK)</option> -->
-          </select>
-        </label>
+    <transition name="fade">
+      <div id="output-selector" v-if="showOutput">
+        <h3>Select Output Format</h3>
+        <ul>
+          <li><span><input type="radio" v-bind:class="{'checked': ctextSelected}" id="t" v-on:change="showFormatOptions" value="TEXT" name="output-select" v-model="selectedFormat"> <label for="t"> Text </label> </span></li>
+          <li><span><input type="radio" v-bind:class="{'checked': audioSelected}" id="a" v-on:change="showFormatOptions" value="AUDIO" name="output-select" v-model="selectedFormat"> <label for="a"> Audio </label> </span></li>
+        </ul>
+        <div v-if="textSelected">
+          <label class="pull-left" for="line-count">Enter Line Count: </label> <input type="number" v-model="lineCount" min="0" id="line-count" class="output-modes"/>
+        </div>
+
+        <div v-if="audioSelected">
+          <label class="pull-left" for="time">Enter Audio Time:</label>  <input type="number" v-model="audioTime" min="0" id="time" class="output-modes" />
+          <label for="accent" class="pull-left">Select Audio Accent: </label>
+          <select id="accent" v-model="accent" class="output-modes">
+              <option value="EN-UK">English (UK)</option>
+              <option value="EN-IN">English (IN)</option>
+              <option value="EN-US">English (US)</option>
+              <!-- <option value="EN-UK">English (UK)</option> -->
+            </select>
+        </div>
       </div>
-    </div>
+    </transition>
 
     
     <!-- <ul>
@@ -61,11 +66,12 @@
     },
     data: function(){
       return {
-        contextSelected: null,
+        showText: true,
+        contextSelected: 'C1',
         showContext: false,
         showOutput: false,
-        selectedFormat: null,
-        textSelected: false,
+        selectedFormat: 'TEXT',
+        textSelected: true,
         audioSelected: false,
         lineCount: 50,
         audioTime: 7,
@@ -74,6 +80,7 @@
     }, 
     methods: {
       fetchContext(){
+        this.showText = false;
         this.showContext = true;
       },
       fetchFullSummary() {
@@ -95,6 +102,9 @@
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.pull-left {
+  float: left;
+}
 .hello {
   padding: 1em;
 }
@@ -102,7 +112,11 @@ h3 {
   margin: 40px 0 0;
   text-align: left;
 }
-textarea {
+.output-modes {
+  min-height: 30px;
+  font-size: 15px;
+}
+select, input, textarea {
   width: 100%;
   border-radius: 4px;
   border: 1px solid #ddd;
@@ -191,5 +205,22 @@ li {
     opacity: 1;
     -webkit-transform: scale(1);
     transform: scale(1);
+}
+.slide-fade-enter-active {
+  transition: all .3s ease;
+}
+.slide-fade-leave-active {
+  transition: all .8s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+}
+.slide-fade-enter, .slide-fade-leave-to
+/* .slide-fade-leave-active below version 2.1.8 */ {
+  transform: translateX(10px);
+  opacity: 0;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
 }
 </style>
