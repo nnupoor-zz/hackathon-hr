@@ -1,72 +1,49 @@
 <template>
   <div class="hello">
-    <!-- <h1>{{ msg }}</h1> -->
-    <transition name="slide-fade">
+    <transition name="">
       <div id="text" v-if="showText">
-        <textarea name="main-text" id="main-text" cols="30" rows="10" placeholder="Paste your text here"></textarea>
+        <textarea name="main-text" id="main-text" v-model="inputText" cols="30" rows="10" placeholder="Paste your text here"></textarea>
         <button class="btn txt-center" v-on:click="fetchContext"> Get Context </button>
       </div>
     </transition>
-    <!-- <p>
-      For guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://github.com/vuejs/vue-cli/tree/dev/docs" target="_blank">vue-cli documentation</a>.
-    </p> -->
+    <loader v-if="showLoader"></loader>
     <transition name="fade">
       <div id="context-selector" v-if="showContext">
-        <h3>Select Context</h3>
-        <ul>
-          <li><span><input type="radio" id="c1" name="context-select" value="C1" v-model="contextSelected" checked="checked" v-bind:class="{'checked': contextSelected==='C1'}"><label for="c1"> Context 1 </label></span></li>
-          <li><span><input type="radio" id="c2" name="context-select" value="C2" v-model="contextSelected" v-bind:class="{'checked': contextSelected==='C2'}"><label for="c2"> Context 2 </label></span></li>
-        </ul>
-        <button class="btn txt-center" v-on:click="fetchFullSummary">Get Summary</button>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div id="output-selector" v-if="showOutput">
-        <h3>Select Output Format</h3>
-        <ul>
-          <li><span><input type="radio" v-bind:class="{'checked': ctextSelected}" id="t" v-on:change="showFormatOptions" value="TEXT" name="output-select" v-model="selectedFormat"> <label for="t"> Text </label> </span></li>
-          <li><span><input type="radio" v-bind:class="{'checked': audioSelected}" id="a" v-on:change="showFormatOptions" value="AUDIO" name="output-select" v-model="selectedFormat"> <label for="a"> Audio </label> </span></li>
-        </ul>
-        <div v-if="textSelected">
-          <label class="pull-left" for="line-count">Enter Line Count: </label> <input type="number" v-model="lineCount" min="0" id="line-count" class="output-modes"/>
+        <p class="head-back" v-on:click="backToText"><img src="./back.svg">Back</p>
+        <div v-if="showContext && showContextSelector">
+          <h3 class="header-sec">Select Context</h3>
+          <ul v-if="contexts && contexts.length">
+            <li v-for="(context, index) of contexts"><span><input type="radio" :id="index" name="context-select" :value="index" v-model="contextSelected"><label :for="index"> {{context}} </label></span></li>
+          </ul>
+          <div>
+            <!-- <button class="btn txt-center" v-on:click="backToText">New Summary</button> -->
+            <button class="btn txt-center" v-on:click="fetchFullSummary">Get Summary</button>
+          </div>
         </div>
-
-        <div v-if="audioSelected">
-          <label class="pull-left" for="time">Enter Audio Time:</label>  <input type="number" v-model="audioTime" min="0" id="time" class="output-modes" />
-          <label for="accent" class="pull-left">Select Audio Accent: </label>
-          <select id="accent" v-model="accent" class="output-modes">
-              <option value="EN-UK">English (UK)</option>
-              <option value="EN-IN">English (IN)</option>
-              <option value="EN-US">English (US)</option>
-              <!-- <option value="EN-UK">English (UK)</option> -->
-            </select>
+        <div v-if="showSummary">
+            {{summary}}
         </div>
       </div>
     </transition>
-
-    
-    <!-- <ul>
-      <li><a href="https://router.vuejs.org/en/essentials/getting-started.html" target="_blank">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org/en/intro.html" target="_blank">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org/en" target="_blank">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
-    </ul> -->
   </div>
 </template>
 
 <script>
+  import axios from 'axios';
+  import Loader from './Loader.vue'
+
   export default {
     name: 'HelloWorld',
+    components: {
+      Loader
+    },
     props: {
       msg: String
     },
     data: function(){
       return {
         showText: true,
+        inputText: '',
         contextSelected: 'C1',
         showContext: false,
         showOutput: false,
@@ -75,17 +52,60 @@
         audioSelected: false,
         lineCount: 50,
         audioTime: 7,
-        accent: 'EN-US' 
+        accent: 'EN-US',
+        contexts: [],
+        errors: [],
+        topics: [],
+        summary: "",
+        showLoader: false,
+        showSummary: false,
+        showContextSelector: true
       }
     }, 
     methods: {
       fetchContext(){
         this.showText = false;
-        this.showContext = true;
+        this.showLoader = true;
+        axios.post('http://localhost:5000/api/contexts', {
+          text: this.inputText
+        })
+        .then(response => {
+          this.showLoader = false
+          this.contexts = response.data.contexts
+          this.topics = response.data.topics
+          this.inputText = response.data.inputText
+          this.showContextSelector = true
+        })
+        .catch(e => {
+          this.showLoader = false
+          this.showContext = true
+          this.showContextSelector = true
+          this.errors.push(e)
+        })
       },
       fetchFullSummary() {
-        console.log(this.contextSelected);
-        this.showOutput = true;
+        this.summary = ""
+        this.showContext = false
+        this.showContextSelector = false
+        this.showLoader = true
+        
+        axios.post('http://localhost:5000/api/summary', {
+          topic: this.topics[this.contextSelected],
+          text: this.inputText
+        })
+        .then(response => {
+          this.showLoader = false
+          this.summary = response.data.summary
+          this.showSummary = true
+          this.showContext = true
+        })
+        .catch(e => {
+          this.showLoader = false
+          this.errors.push(e)
+          this.summary = 'Some error happened! Try again!'
+          this.showSummary = true
+          this.showContext = true
+        })
       },
       showFormatOptions() {
         if (this.selectedFormat === 'TEXT') {
@@ -95,6 +115,13 @@
           this.textSelected = false;
           this.audioSelected = true;
         }
+      },
+      backToText() {
+        this.inputText = ""
+        this.summary = ""
+        this.showText = true;
+        this.showContext = false
+        this.showContextSelector = false
       }
     }
   }
@@ -112,6 +139,19 @@ h3 {
   margin: 40px 0 0;
   text-align: left;
 }
+.header-sec {
+  margin-top: 0;
+}
+.head-back {
+  margin-top: 0;
+  text-align: left;
+}
+.head-back > img {
+  margin-right: 8px;
+  position: relative;
+  top: 3px;
+}
+
 .output-modes {
   min-height: 30px;
   font-size: 15px;
@@ -121,6 +161,7 @@ select, input, textarea {
   border-radius: 4px;
   border: 1px solid #ddd;
   outline: none;
+  font-size: 1em;
 }
 ul {
   list-style-type: none;
@@ -148,6 +189,8 @@ input[type="radio"] {
   border: none;
   border-radius: 4px;
   padding: 1em 2em;
+  margin-top: 1em;
+  outline: none;
 }
 li {
   text-align: left;
@@ -206,21 +249,5 @@ li {
     -webkit-transform: scale(1);
     transform: scale(1);
 }
-.slide-fade-enter-active {
-  transition: all .3s ease;
-}
-.slide-fade-leave-active {
-  transition: all .8s cubic-bezier(1.0, 0.5, 0.8, 1.0);
-}
-.slide-fade-enter, .slide-fade-leave-to
-/* .slide-fade-leave-active below version 2.1.8 */ {
-  transform: translateX(10px);
-  opacity: 0;
-}
-.fade-enter-active, .fade-leave-active {
-  transition: opacity .5s;
-}
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
-  opacity: 0;
-}
+
 </style>
